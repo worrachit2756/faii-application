@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="style.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" />
+  <title>Faii Applications</title>
+</head>
+<style>
+  .seats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-left: 1%;
+  }
+
+  .seat-btn {
+    width: calc(10% - 5px);
+    /* ความกว้างของปุ่ม 10% และลบช่องว่าง */
+    height: 30px;
+    text-align: center;
+    border: none;
+    background-color: transparent;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 0;
+    color: #000;
+  }
+
+  .seat-btn:focus {
+    outline: none;
+  }
+
+  .seat-btn.selected {
+    background-color: #6c757d;
+    color: white;
+  }
+
+  .seat-btn.reserved {
+    background-color: #42484e;
+    color: #42484e;
+  }
+
+  .seat-btn.booked {
+    background-image: url("booked.jpg");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center center;
+    color: rgba(0, 0, 0, 0);
+  }
+
+  .no-border {
+    border: none !important;
+    color: #0dcaf0;
+    font-size: large;
+    background-color: transparent !important;
+    /* ปรับสีพื้นหลังให้โปร่งใส */
+  }
+
+  .no-border:hover {
+    background-color: transparent !important;
+    /* ป้องกันการเปลี่ยนสีเมื่อเอาเมาส์ชี้ */
+    color: #0dcaf0;
+    /* ป้องกันการเปลี่ยนสีข้อความเมื่อเอาเมาส์ชี้ */
+  }
+</style>
+
+<body>
+  <div class="container mt-3">
+    <div class="text-center mt-4">
+      <h1>
+        <span class="badge rounded-pill bg-info text-dark" id="left_label" style="line-height: 40px"></span>
+      </h1>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <form id="addForm">
+          <div class="form-group mt-3">
+            <label for="name"> NAME </label>
+            <input type="text" class="form-control" name="name" id="name" />
+          </div>
+          <div class="form-group mt-3">
+            <label for="number">NUMBER</label>
+            <input type="text" class="form-control" name="number" id="number" />
+          </div>
+        </form>
+
+        <div class="seats mt-5"></div>
+
+        <div class="form-group mt-3 text-center">
+          <button type="submit" form="addForm" class="btn btn-outline-info mx-1" style="width: 30%">
+            <i class="fa-solid fa-floppy-disk"></i> Save
+          </button>
+          <button id="cancelButton" type="button" class="btn btn-outline-danger mx-1" style="width: 30%">
+            <i class="fa-solid fa-ban"></i> Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-5">
+      <div class="text-center mt-4">
+        <h1>
+          <span>
+            <button id="showTableButton" class="btn btn-outline-dark no-border" style="width: 100%; height: 50px">
+              <i class="fa-solid fa-circle-info"></i> DETAILS
+            </button>
+          </span>
+        </h1>
+      </div>
+      <div class="card-body">
+        <div class="form-group mt-4 d-flex align-items-center text-center">
+          <input type="text" id="searchInput" class="form-control me-2" placeholder="Enter number to search"
+            style="width: 50%; display: none" />
+          <button id="searchButton" class="btn btn-outline-info" style="display: none">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+        </div>
+
+        <table class="table table-hover mt-4" id="table" style="display: none">
+          <thead>
+            <tr>
+              <th style="text-align: center">NAME</th>
+              <th style="text-align: center">NUMBER</th>
+              <th style="text-align: center">DELETE</th>
+              <th style="text-align: center">EDIT</th>
+              <th style="text-align: center">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="text-center mt-5">
+      <button id="deleteAllBtn" class="btn btn-outline-danger" style="display: none">
+        <i class="fa-solid fa-arrows-rotate"></i> Delete All
+      </button>
+    </div>
+
+    <div class="text-center mt-5">
+      <!-- footer -->
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, addDoc, doc, deleteDoc, setDoc, getDoc, query, where, } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore.js";
+    import { writeBatch } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore.js";
+
+    // call api and database
+    let firebaseConfig = {
+      apiKey: "AIzaSyBJNvkc3g4w0oSYbgpWRsSxtLDSRZvFFSo",
+      authDomain: "lotto-6e388.firebaseapp.com",
+      projectId: "lotto-6e388",
+      storageBucket: "lotto-6e388.appspot.com",
+      messagingSenderId: "1049963461205",
+      appId: "1:1049963461205:web:c150f04915c31ed3dd32dc",
+    };
+    const app = initializeApp(firebaseConfig);
+    const database = getFirestore(app);
+
+    // function
+    const form = document.getElementById("addForm");
+    const seatsContainer = document.querySelector(".seats");
+    const numberInput = document.getElementById("number");
+    let bookedSeats = [];
+    let bookedNames = [];
+
+    async function get_data() {
+      try {
+        const lottoSnapshot = await getDocs(collection(database, "lotto"));
+        const lottoData = lottoSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        bookedSeats = lottoData.reduce((acc, curr) => {
+          const numbers = curr.number.split(", ").map((num) => num.trim());
+          return [...acc, ...numbers];
+        }, []);
+        bookedSeats = [...new Set(bookedSeats)];
+
+        bookedNames = lottoData.reduce((acc, curr) => {
+          const names = curr.name.split(", ").map((num) => num.trim());
+          return [...acc, ...names];
+        }, []);
+        bookedNames = [...new Set(bookedNames)];
+        // console.log("Booked seats: ", bookedSeats);
+        // console.log("Booked names: ", bookedNames);
+        let leftNumber = 100 - bookedSeats.length;
+        document.getElementById("left_label").textContent = leftNumber;
+
+        return lottoData;
+      } catch (e) {
+        console.error("Error fetching lotto data: ", e);
+        return [];
+      }
+    }
+
+    async function create_seat() {
+      try {
+        const lottoData = await get_data();
+
+        for (let i = 0; i < 100; i++) {
+          const seatNumber = i < 10 ? "0" + i : "" + i;
+          if (parseInt(seatNumber) <= 99) {
+            // Check if seatNumber is within valid range
+            const seat = document.createElement("button");
+            seat.classList.add("seat-btn");
+            seat.textContent = seatNumber;
+
+            // Check if seatNumber is in bookedSeats array
+            if (bookedSeats.includes(seatNumber)) {
+              seat.classList.add("booked"); // Add 'booked' class for styling
+            }
+
+            seat.addEventListener("click", selected_seat);
+            seatsContainer.appendChild(seat);
+          }
+        }
+      } catch (error) {
+        console.error("Error initializing seats: ", error);
+      }
+    }
+
+    function selected_seat() {
+      console.log("function selected_seat");
+      let seatNumber = this.textContent.trim();
+      console.log(seatNumber);
+      if (bookedSeats.includes(seatNumber)) {
+        console.log("seatNumber includes");
+        Swal.fire({
+          imageUrl: "number_duplicate.png",
+          imageAlt: "Seat booked",
+          showConfirmButton: false,
+          timer: 2500,
+        });
+        return;
+      }
+      this.classList.toggle("selected");
+      update_input(seatNumber, this.classList.contains("selected"));
+    }
+
+    function update_input(seatNumber, isSelected) {
+      seatNumber = seatNumber.toString().padStart(2, "0");
+      let currentNumbers = numberInput.value
+        ? numberInput.value.split(", ")
+        : [];
+      currentNumbers = currentNumbers.map((number) =>
+        number.padStart(2, "0")
+      );
+      if (isSelected) {
+        if (currentNumbers.includes(seatNumber)) {
+          currentNumbers = currentNumbers.filter(
+            (number) => number !== seatNumber
+          );
+        } else {
+          currentNumbers.push(seatNumber);
+        }
+      } else {
+        currentNumbers = currentNumbers.filter(
+          (number) => number !== seatNumber
+        );
+      }
+      numberInput.value = currentNumbers.join(", ");
+    }
+
+    // table
+    async function displayDataInTable() {
+      try {
+        const lottoData = await get_data(); // Assume get_data() fetches the data from Firestore
+        const tableBody = document.getElementById("tableBody");
+        // Clear existing table rows
+        tableBody.innerHTML = "";
+
+        // Iterate through each data entry and create a row in the table
+        lottoData.forEach((data) => {
+          const row = document.createElement("tr");
+
+          // Calculate the number of entries
+          const numberCount = data.number.split(",").length;
+
+          row.innerHTML = `
+          <td style="text-align: center">${data.name}</td>
+          <td style="text-align: center">${data.number}</td>
+          <td style="text-align: center"><button class="btn btn-danger btn-sm delete-btn" data-id="${data.id}"><i class="fa-solid fa-trash"></i></button></td>
+          <td style="text-align: center"><button class="btn btn-primary btn-sm edit-btn" data-id="${data.id}"><i class="fa-solid fa-pen-to-square"></i></button></td>
+          <td style="text-align: center">${numberCount}</td> <!-- แสดงจำนวนหมายเลข -->
+        `;
+
+          // Append the row to the table body
+          tableBody.appendChild(row);
+
+          // Add event listeners for delete and edit buttons (if needed)
+          const deleteBtn = row.querySelector(".delete-btn");
+          const editBtn = row.querySelector(".edit-btn");
+
+          deleteBtn.addEventListener("click", async () => {
+            const confirmDelete = await Swal.fire({
+              imageUrl: "clear_table.png",
+              text: `Delete ${data.name}'s entry.`,
+              showCancelButton: true,
+              confirmButtonColor: "#d33",
+              cancelButtonColor: "#3085d6",
+              confirmButtonText: "Delete",
+              cancelButtonText: "Cancel",
+            });
+
+            if (confirmDelete.isConfirmed) {
+              try {
+                await deleteDoc(doc(database, "lotto", data.id));
+                row.remove();
+                Swal.fire({
+                  imageUrl: "success.jpg",
+                  showConfirmButton: false,
+                  timer: 2500,
+                });
+              } catch (error) {
+                console.error("Error deleting document: ", error);
+                Swal.fire("Oops...", "Failed to delete the entry.", "error");
+              }
+            }
+          });
+
+          // Edit data
+          editBtn.addEventListener("click", async () => {
+            const { value: formValues } = await Swal.fire({
+              title: "Edit Entry",
+              html: `
+            <input id="swal-input1" class="swal2-input" value="${data.name}">
+            <input id="swal-input2" class="swal2-input" value="${data.number}">
+          `,
+              focusConfirm: false,
+              showCancelButton: true,
+              preConfirm: () => {
+                return [
+                  document.getElementById("swal-input1").value,
+                  document.getElementById("swal-input2").value,
+                ];
+              },
+            });
+
+            if (formValues) {
+              const [newName, newNumber] = formValues;
+
+              // Check for duplicate numbers
+              const newNumberArray = newNumber
+                .split(",")
+                .map((num) => num.trim());
+              const allNumbers = lottoData.reduce((acc, curr) => {
+                if (curr.id !== data.id) {
+                  // Exclude the current editing row
+                  const numbers = curr.number
+                    .split(",")
+                    .map((num) => num.trim());
+                  return [...acc, ...numbers];
+                }
+                return acc;
+              }, []);
+
+              const duplicates = newNumberArray.filter((num) =>
+                allNumbers.includes(num)
+              );
+
+              if (duplicates.length > 0) {
+                // Find names with duplicate numbers
+                const namesWithDuplicates = lottoData
+                  .filter((entry) =>
+                    duplicates.some((num) =>
+                      entry.number
+                        .split(",")
+                        .map((n) => n.trim())
+                        .includes(num)
+                    )
+                  )
+                  .map((entry) => entry.name);
+
+                Swal.fire({
+                  icon: "error",
+                  title: "Duplicate Numbers Found",
+                  text: `The numbers ${duplicates.join(
+                    ","
+                  )} are already used by ${namesWithDuplicates.join(", ")}.`,
+                  timer: 5000,
+                });
+                return; // Stop further execution
+              }
+
+              try {
+                // Update the document in Firestore
+                const docRef = doc(database, "lotto", data.id);
+                await setDoc(docRef, { name: newName, number: newNumber });
+
+                // Update the row in the table
+                row.children[0].textContent = newName;
+                row.children[1].textContent = newNumber;
+                row.children[2].textContent = newNumber.split(",").length; // Update count
+
+                Swal.fire(
+                  "Updated!",
+                  "The entry has been updated.",
+                  "success"
+                );
+              } catch (error) {
+                console.error("Error updating document: ", error);
+                Swal.fire("Oops...", "Failed to update the entry.", "error");
+              }
+            }
+          });
+        });
+        // Show the table if it was hidden
+        table.style.display = "none";
+      } catch (error) {
+        console.error("Error fetching or displaying data: ", error);
+      }
+    }
+
+    async function deleteAllEntries() {
+      try {
+        const lottoData = await get_data(); // ดึงข้อมูลทั้งหมด
+        const batch = writeBatch(database); // ใช้ batch write เพื่อเพิ่มประสิทธิภาพ
+
+        // สร้างลิสต์ของ document references ที่จะลบ
+        lottoData.forEach((data) => {
+          const docRef = doc(database, "lotto", data.id);
+          batch.delete(docRef); // เพิ่มการลบลงใน batch
+        });
+
+        // ส่ง batch write
+        await batch.commit();
+        Swal.fire("Deleted!", "All entries have been deleted.", "success");
+        await displayDataInTable();
+        updateAfter();
+      } catch (error) {
+        console.error("Error deleting all entries: ", error);
+        Swal.fire("Oops...", "Failed to delete all entries.", "error");
+      }
+    }
+
+    // Search
+    async function searchByNumber() {
+      const numberToSearch = document
+        .getElementById("searchInput")
+        .value.trim();
+
+      if (!numberToSearch) {
+        Swal.fire({
+          imageUrl: "not_input_search.png",
+          showConfirmButton: false,
+          timer: 2500,
+        });
+        return;
+      }
+
+      try {
+        const lottoData = await get_data(); // ดึงข้อมูลทั้งหมด
+        const matchedEntries = lottoData.filter((data) => {
+          const numbers = data.number.split(",").map((num) => num.trim());
+          return numbers.includes(numberToSearch);
+        });
+
+        if (matchedEntries.length > 0) {
+          const names = matchedEntries.map((entry) => entry.name).join(", ");
+          Swal.fire({
+            imageUrl: "search.png",
+            title: `Number ${numberToSearch} owned is ${names}`,
+            didOpen: () => {
+              confetti({
+                particleCount: 1000,
+                spread: 700,
+                origin: { y: 0.6 },
+              });
+            },
+          });
+        } else {
+          Swal.fire({
+            title: "Not Found",
+            text: `No entries found for number ${numberToSearch}.`,
+            icon: "info",
+          });
+        }
+      } catch (error) {
+        console.error("Error searching by number: ", error);
+        Swal.fire("Oops...", "Failed to search. Please try again.", "error");
+      }
+    }
+
+    // hidden table
+    document.getElementById("showTableButton").addEventListener("click", function () {
+      console.log("showTableButton");
+      var table = document.getElementById("table");
+      var searchInput = document.getElementById("searchInput");
+      var searchButton = document.getElementById("searchButton");
+      var deleteAllBtn = document.getElementById("deleteAllBtn");
+
+      if (table.style.display === "none") {
+        table.style.display = "table";
+        searchInput.style.display = "";
+        searchButton.style.display = "";
+        deleteAllBtn.style.display = "";
+      } else {
+        table.style.display = "none";
+        searchInput.style.display = "none";
+        searchButton.style.display = "none";
+        deleteAllBtn.style.display = "none";
+      }
+    });
+
+    document.getElementById("searchButton").addEventListener("click", searchByNumber);
+
+    document.getElementById("deleteAllBtn").addEventListener("click", () => {
+      Swal.fire({
+        imageUrl: "clear_table.png",
+        text: "Clear data ?",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Delete All",
+        cancelButtonText: "Cancel",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          deleteAllEntries(); // เรียกใช้ฟังก์ชันลบทั้งหมด
+        }
+      });
+    });
+
+    //Submit Form
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const name = form.name.value.trim();
+      const number = form.number.value.trim();
+
+      try {
+        if (bookedNames.includes(name)) {
+          Swal.fire({
+            imageUrl: "name_duplicate.png",
+            title: "Name is Duplicate.!",
+            showConfirmButton: false,
+            timer: 2500,
+          });
+        } else if (name === "") {
+          Swal.fire({
+            imageUrl: "not_input_name.png",
+            showConfirmButton: false,
+            timer: 2500,
+          });
+        } else if (number === "") {
+          Swal.fire({
+            imageUrl: "not_input_numbers.png",
+            showConfirmButton: false,
+            timer: 2500,
+          });
+        } else {
+          // Save to Firestore
+          const docRef = await addDoc(collection(database, "lotto"), {
+            name: name,
+            number: number,
+          });
+
+          form.reset();
+
+          Swal.fire({
+            imageUrl: "success.jpg",
+            title: "Data saved successfully!",
+            showConfirmButton: false,
+            timer: 2500,
+          });
+
+          // Optionally, fetch and display updated data
+          const newLotto = await getDoc(docRef);
+          console.log("New Lotto Entry: ", newLotto.data());
+
+          // Send email using Formspree
+          // const response = await fetch("https://formspree.io/f/mdknabpr", {
+          //   method: "POST",
+          //   headers: {
+          //     "Content-Type": "application/json",
+          //   },
+          //   body: JSON.stringify({
+          //     name: name,
+          //     number: number,
+          //   }),
+          // });
+
+          // if (response.ok) {
+          //   console.log("Email sent successfully");
+          // } else {
+          //   console.error("Failed to send email");
+          // }
+
+          // Update the table to reflect new data
+          await displayDataInTable(); // Refresh the table data
+          await updateAfter(); // Refresh the table data
+        }
+      } catch (error) {
+        console.error("Error adding/updating document: ", error);
+
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: "Failed to save/update data. Please try again.",
+          timer: 3000,
+        });
+      }
+    });
+
+    async function updateAfter() {
+      console.log("updateAfter");
+      if (table.style.display === "none") {
+        table.style.display = "table";
+        searchInput.style.display = "";
+        searchButton.style.display = "";
+        deleteAllBtn.style.display = "";
+      } else {
+        table.style.display = "none";
+        searchInput.style.display = "none";
+        searchButton.style.display = "none";
+        deleteAllBtn.style.display = "none";
+      }
+    }
+
+    function clearSelections() {
+      const selectedSeats = document.querySelectorAll(".seat-btn.selected");
+      selectedSeats.forEach((seat) => {
+        seat.classList.remove("selected");
+      });
+      numberInput.value = "";
+    }
+    
+    document.getElementById("cancelButton").addEventListener("click", clearSelections);
+
+    get_data();
+    create_seat();
+    displayDataInTable();
+  </script>
+</body>
+
+</html>

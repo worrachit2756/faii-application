@@ -1,0 +1,78 @@
+body {
+  font-family: Arial, sans-serif;
+  /* background-image: url('img/backgound2.jpg'); */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+.custom-card {
+  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: 15px;
+}
+
+.container {
+  max-width: 420px;
+  margin: auto;
+  /* padding-top: 20px; */
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+}
+
+.seats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  /* margin-left: 95px;
+  margin-right: 90px; */
+
+}
+
+.seat {
+  width: calc(20% - 5px);
+  height: 60px;
+  padding: 10px;
+  border: 4px solid #b7b7b7;
+  text-align: center;
+  cursor: pointer;
+  line-height: 35px;
+  border-radius: 50%;
+}
+
+/* .seat.selected {
+  background-color: lightblue;
+} */
+
+.seat.selected {
+  background-image: url('img/select.png');
+  background-size: cover;
+  border: 3px solid #f9a825;
+}
+
+
+.seat.reserved {
+  background-image: url('img/select.png');
+  background-size: cover;
+  border: 3px solid #c41411;
+}
+
+.confirmation {
+  margin-top: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}

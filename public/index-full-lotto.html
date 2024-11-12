@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="style.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://kit.fontawesome.com/48bcbf2c30.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css">
+  <title>Document</title>
+</head>
+<style>
+  .seats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-left: 1%;
+  }
+
+  .seat-btn {
+    width: calc(10% - 5px);
+    /* ความกว้างของปุ่ม 10% และลบช่องว่าง */
+    height: 30px;
+    text-align: center;
+    border: none;
+    background-color: transparent;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 0;
+    color: #000;
+    /* สีของตัวหมายเลข */
+  }
+
+  .seat-btn:focus {
+    outline: none;
+  }
+
+  .seat-btn.selected {
+    background-color: #6c757d;
+    color: white;
+  }
+
+  .seat-btn.reserved {
+    background-color: #42484e;
+    color: #42484e;
+  }
+</style>
+
+<body>
+  <div class="container mt-3">
+    <div class="text-center mt-4">
+      <h1>
+        <span class="badge rounded-pill bg-info text-dark" id="left_label" style="line-height: 40px;"></span>
+      </h1>
+    </div>
+    <form id="addForm">
+      <div class="form-group">
+        <label for="name"> name </label>
+        <input type="text" class="form-control" name="name" id="name">
+      </div>
+      <div class="form-group">
+        <label for="number">number</label>
+        <input type="text" class="form-control" name="number" id="number">
+      </div>
+    </form>
+
+    <div class="seats mt-5"></div>
+
+    <div class="form-group mt-3 text-center">
+      <button type="submit" form="addForm" class="btn btn-outline-success mx-1" style="width: 30%;">Save</button>
+      <button type="cancle" form="cancleForm" class="btn btn-outline-danger mx-1" style="width: 30%;">Cancel</button>
+      <button id="showTableButton" class="btn btn-outline-info mx-1" style="width: 30%;">Details</button>
+    </div>
+
+    <table class="table table-hover" id="table" style="display: none;">
+      <tr>
+        <th>name</th>
+        <th>number</th>
+        <th>delete</th>
+        <th>edit</th>
+      </tr>
+    </table>
+  </div>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+  <script type="module">
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js"
+    import { getFirestore, collection, getDocs, addDoc, doc, deleteDoc, setDoc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore.js"
+    // call api
+    let firebaseConfig = {
+      apiKey: "AIzaSyBJNvkc3g4w0oSYbgpWRsSxtLDSRZvFFSo",
+      authDomain: "lotto-6e388.firebaseapp.com",
+      projectId: "lotto-6e388",
+      storageBucket: "lotto-6e388.appspot.com",
+      messagingSenderId: "1049963461205",
+      appId: "1:1049963461205:web:c150f04915c31ed3dd32dc"
+    }
+    // call database
+    let app = initializeApp(firebaseConfig)
+    let database = getFirestore(app)
+
+    // FUNCTION
+    let table = document.getElementById("table")
+    let form = document.getElementById("addForm")
+    let seatsContainer = document.querySelector('.seats');
+    let bookedSeats = [];
+    let numberInput = document.getElementById('number');
+
+    async function init() {
+      console.log('function init')
+      let data = await getlotto(database)
+      for (let lotto of data.docs) {
+        await showData(lotto)
+      }
+      setupSeats();
+    }
+
+    init()
+
+    function showData(lotto) {
+      return new Promise((resolve, reject) => {
+        console.log('function showData')
+        bookedSeats = bookedSeats.concat(lotto.data().number);
+        bookedSeats = bookedSeats.flatMap(seat => seat.split(', '));
+        // console.log(bookedSeats)
+        let row = table.insertRow(-1)
+        row.setAttribute('data-id', lotto.id)
+        let nameCol = row.insertCell(0)
+        let numberCol = row.insertCell(1)
+        let deleteCol = row.insertCell(2)
+        let editCol = row.insertCell(3)
+
+        nameCol.innerHTML = lotto.data().name
+        numberCol.innerHTML = lotto.data().number
+
+        let deleteBtn = document.createElement('button')
+        deleteBtn.textContent = "Delete"
+        deleteBtn.setAttribute('class', 'btn btn-danger')
+        deleteBtn.setAttribute('data-id', lotto.id)
+        deleteCol.appendChild(deleteBtn)
+
+        deleteBtn.addEventListener('click', async () => {
+          try {
+            await deleteDoc(doc(database, 'lotto', deleteBtn.getAttribute('data-id')))
+            row.remove()
+            alert("Deleted Success")
+          } catch (error) {
+            console.error("Deleted Fail : ", error)
+          }
+        })
+
+        let editBtn = document.createElement('button')
+        editBtn.textContent = "Edit"
+        editBtn.setAttribute('class', 'btn btn-primary')
+        editBtn.setAttribute('data-id', lotto.id)
+        editCol.appendChild(editBtn)
+
+        editBtn.addEventListener('click', () => {
+          populateEditForm(lotto)
+        })
+
+        countLeft(bookedSeats.length);
+        resolve();
+      });
+    }
+
+    function setupSeats() {
+      for (let i = 0; i < 100; i++) {
+        const seat = document.createElement('button');
+        seat.classList.add('seat-btn');
+        seat.textContent = i < 10 ? '0' + i : i;
+        if (bookedSeats.includes(seat.textContent)) {
+          seat.style.backgroundColor = 'black';
+        }
+        seat.addEventListener('click', selectedSeat);
+        seatsContainer.appendChild(seat);
+        // console.log(seat);
+      }
+    }
+
+    function selectedSeat() {
+      console.log('function selectedSeat')
+      const seatNumber = parseInt(this.textContent.trim());
+      let bookedSeatNumbers = bookedSeats.map(number => parseInt(number));
+      if (bookedSeatNumbers.includes(seatNumber)) {
+        console.log('seatNumber includes');
+        Swal.fire({
+          imageUrl: 'img/duplicate.png',
+          imageAlt: 'Seat booked',
+          showConfirmButton: true,
+          timer: 2000
+        });
+        return;
+      }
+      this.classList.toggle('selected');
+      updateNumberInput(seatNumber, this.classList.contains('selected'));
+    }
+
+    function updateNumberInput(seatNumber, isSelected) {
+      seatNumber = seatNumber.toString().padStart(2, '0');
+      let currentNumbers = numberInput.value ? numberInput.value.split(', ') : [];
+      currentNumbers = currentNumbers.map(number => number.padStart(2, '0'));
+      if (isSelected) {
+        if (currentNumbers.includes(seatNumber)) {
+          currentNumbers = currentNumbers.filter(number => number !== seatNumber);
+        } else {
+          currentNumbers.push(seatNumber);
+        }
+      } else {
+        currentNumbers = currentNumbers.filter(number => number !== seatNumber);
+      }
+      numberInput.value = currentNumbers.join(', ');
+    }
+
+    async function handleSubmit(e) {
+      e.preventDefault();
+      console.log('function handleSubmit');
+      try {
+        let names = await getNames();
+        let nameSubmit = String(form.name.value);
+
+        if (names.includes(nameSubmit)) {
+          console.log('Name exists in the array');
+          await deleteName(nameSubmit);
+          let docRef = await addDoc(collection(database, 'lotto'), {
+            name: form.name.value,
+            number: form.number.value
+          });
+          alert("Update Success");
+        } else {
+          let docRef = await addDoc(collection(database, 'lotto'), {
+            name: form.name.value,
+            number: form.number.value
+          });
+
+          alert("Created Success");
+
+          let newLotto = await getDoc(docRef);
+          showData(newLotto);
+        }
+        form.reset();
+      } catch (error) {
+        console.error("Created Fail ", error);
+      }
+    }
+
+    async function getNames() {
+      try {
+        console.log('getNames');
+        const lottoCollection = collection(database, 'lotto');
+        const lottoSnapshot = await getDocs(lottoCollection);
+        const names = lottoSnapshot.docs.map(doc => doc.data().name);
+        console.log("Names from lotto collection: ", names);
+        return names;
+      } catch (e) {
+        console.error("Error fetching documents: ", e);
+        return []; // คืนค่าอาร์เรย์ว่างในกรณีที่เกิดข้อผิดพลาด
+      }
+    }
+
+    async function deleteName(name) {
+      try {
+        console.log('deleteName');
+        const lottoCollection = collection(database, 'lotto');
+        const q = query(lottoCollection, where('name', '==', name));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach(async (doc) => {
+          await deleteDoc(doc.ref);
+          console.log(`Document with name ${name} deleted`);
+        });
+      } catch (e) {
+        console.error("Error deleting documents: ", e);
+      }
+    }
+    form.addEventListener('submit', handleSubmit)
+
+    async function getlotto(database) {
+      console.log('function getlotto')
+      let empCol = collection(database, 'lotto')
+      let empSnapshot = await getDocs(empCol)
+      return empSnapshot
+    }
+
+    async function updatelotto(lottoId, newData) {
+      console.log('function updatelotto')
+      let lottoRef = doc(database, 'lotto', lottoId)
+      await setDoc(lottoRef, newData, { merge: true })
+
+      let row = table.querySelector(`[data-id='${lottoId}']`)
+      row.cells[0].innerHTML = newData.name
+      row.cells[1].innerHTML = newData.number
+    }
+
+    function populateEditForm(lotto) {
+      console.log('function populateEditForm')
+      form.name.value = lotto.data().name
+      form.number.value = lotto.data().number
+
+      form.querySelector('button[type="submit"]').textContent = "Update"
+
+      let handleUpdate = async (e) => {
+        e.preventDefault()
+        try {
+          await updatelotto(lotto.id, {
+            name: form.name.value,
+            number: form.number.value
+          })
+          alert("Updated Success")
+          form.reset()
+          form.querySelector('button[type="submit"]').textContent = "Save"
+          form.removeEventListener('submit', handleUpdate)
+          form.addEventListener('submit', handleSubmit)
+
+        } catch (error) {
+          console.error("Created Fail : ", error)
+        }
+      }
+
+      form.removeEventListener('submit', handleSubmit)
+      form.addEventListener('submit', handleUpdate)
+    }
+
+    // hidden table
+    document.getElementById('showTableButton').addEventListener('click', function () {
+      var table = document.getElementById('table');
+      if (table.style.display === 'none') {
+        table.style.display = 'table'; // เปลี่ยนเป็น 'block' หรือ 'table' ตามที่ต้องการ
+        this.textContent = 'Hide'; // เปลี่ยนข้อความบนปุ่มเป็น 'Hide Table' หรือที่ต้องการ
+      } else {
+        table.style.display = 'none';
+        this.textContent = 'Details';
+      }
+    });
+
+    function countLeft(numLeng) {
+      let left = 100 - numLeng
+      document.getElementById("left_label").textContent = left;
+    }
+
+  </script>
+</body>
+
+</html>

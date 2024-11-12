@@ -1,0 +1,83 @@
+.btn-add {
+    --bs-btn-color: #72d572;
+    --bs-btn-border-color: #72d572;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #72d572;
+    --bs-btn-hover-border-color: #72d572;
+    --bs-btn-focus-shadow-rgb: 25, 135, 84;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #72d572;
+    --bs-btn-active-border-color: #72d572;
+    --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+    --bs-btn-disabled-color: #72d572;
+    --bs-btn-disabled-bg: transparent;
+    --bs-btn-disabled-border-color: #72d572;
+    --bs-gradient: none
+}
+
+.btn-circle {
+    border-radius: 50%;
+}
+
+.btn-remove {
+    color: #da0a0a;
+    --bs-btn-color: #da0a0a;
+    --bs-btn-border-color: #da0a0a;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #da0a0a;
+    --bs-btn-hover-border-color: #da0a0a;
+    --bs-btn-focus-shadow-rgb: 220, 53, 69;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #da0a0a;
+    --bs-btn-active-border-color: #da0a0a;
+    --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+    --bs-btn-disabled-color: #da0a0a;
+    --bs-btn-disabled-bg: transparent;
+    --bs-btn-disabled-border-color: #da0a0a;
+    --bs-gradient: none
+}
+
+.mx-6 {
+    margin-right: 15rem !important;
+    margin-left: 15rem !important
+}
+
+.total-field{
+    max-width: 40%;
+    margin-left: 1.7%;
+}
+
+.seats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-left: 1%;
+  }
+  
+  .seat-btn {
+    width: calc(10% - 5px); /* ความกว้างของปุ่ม 10% และลบช่องว่าง */
+    height: 25px;
+    text-align: center;
+    border: none;
+    background-color: transparent;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 0;
+    color: #000; /* สีของตัวหมายเลข */
+  }
+  
+  .seat-btn:focus {
+    outline: none;
+  }
+  
+  .seat-btn.selected {
+    background-color: #6c757d;
+    color: white;
+  }
+  
+  .seat-btn.reserved {
+    background-color: #42484e;
+    color: #42484e;
+  }
+  
+  

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+
+<body>
+    <form onsubmit="sendemail(); reset(); return false">
+        <input type="text" id="topic" placeholder="Topic">
+        <input type="text" id="detail" placeholder="Detail">
+        <input type="email" id="to" placeholder="To">
+        <input type="email" id="from" placeholder="From">
+        <input type="text" id="phone" placeholder="Phone">
+        <input type="submit" value="ส่ง Mail">
+    </form>
+    <script src="https://smtpjs.com/v3/smtp.js"></script>
+    <script>
+        function sendemail() {
+            const topic = document.getElementById('topic').value;
+            const detail = document.getElementById('detail').value;
+            const to = document.getElementById('to').value;
+            const from = document.getElementById('from').value;
+            const phone = document.getElementById('phone').value;
+            console.log(`To: ${to}, From: ${from}, Subject: ${topic}, Body: ${detail}`);
+
+            Email.send({
+                Host: "smtp.elasticemail.com",
+                Username: "rebew2756@gmail.com",
+                Password: "0CCCBC4AEA55324C554156B32C8E165FD980",
+                To: to,
+                From: from,
+                Subject: topic,
+                Body: `Detail: ${detail} \nPhone: ${phone}`
+            }).then(
+                message => alert(message)
+            );
+        }
+    </script>
+</body>
+
+</html>
